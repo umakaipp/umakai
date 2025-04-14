@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Umakai Game - Tentez votre chance !">
+    <title>Umakai Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #ff8c00;
+            background: linear-gradient(135deg, #ff8c00, #ff6b00);
+            color: white;
+            padding: 20px;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-container {
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .title {
+            font-size: 36px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin: 10px 0;
+        }
+
+        .slot-machine {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .slots {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+
+        .slot {
+            width: 80px;
+            height: 80px;
+            background: #ff8c00;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .lever {
+            padding: 15px 40px;
+            font-size: 18px;
+            background: #ff4500;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .lever:hover {
+            background: #ff3300;
+            transform: scale(1.05);
+        }
+
+        .lever:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .result {
+            font-size: 24px;
+            margin: 20px 0;
+            text-align: center;
+            min-height: 60px;
+            color: #333;
+        }
+
+        .win {
+            color: #ff4500;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 69, 0, 0.3);
+        }
+
+        .lose {
+            color: #666;
+        }
+
+        .timer {
+            font-size: 16px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .attempts {
+            font-size: 18px;
+            color: #ff4500;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <!-- Remplacez le texte ci-dessous par votre logo -->
+            [Votre Logo]
+        </div>
+        <h1 class="title">UMAKAI GAME</h1>
+    </div>
+
+    <div class="slot-machine">
+        <div class="attempts" id="attempts">Essais restants : 3</div>
+        <div class="slots">
+            <div class="slot" id="slot1">🎲</div>
+            <div class="slot" id="slot2">🎲</div>
+            <div class="slot" id="slot3">🎲</div>
+        </div>
+        <button class="lever" id="leverButton">TIRER</button>
+        <div class="timer" id="timer"></div>
+    </div>
+    <div class="result" id="result"></div>
+
+    <script>
+        const slot1 = document.getElementById('slot1');
+        const slot2 = document.getElementById('slot2');
+        const slot3 = document.getElementById('slot3');
+        const leverButton = document.getElementById('leverButton');
+        const result = document.getElementById('result');
+        const timer = document.getElementById('timer');
+        const attemptsDisplay = document.getElementById('attempts');
+
+        const symbols = ['🍸', '🍶', '🍰'];
+        const prizes = {
+            '🍸🍸🍸': "🎉 JACKPOT ! Un cocktail gratuit !",
+            '🍶🍶🍶': "🎉 JACKPOT ! Un sake gratuit !",
+            '🍰🍰🍰': "🎉 JACKPOT ! Un dessert gratuit !"
+        };
+
+        function getRandomSymbol() {
+            return symbols[Math.floor(Math.random() * symbols.length)];
+        }
+
+        function checkWin(s1, s2, s3) {
+            const combination = s1 + s2 + s3;
+            return prizes[combination] || false;
+        }
+
+        function formatTimeLeft(ms) {
+            const hours = Math.floor(ms / (1000 * 60 * 60));
+            const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+            return `${hours}h ${minutes}m`;
+        }
+
+        let attemptsLeft = 3;
+
+        function checkPlayEligibility() {
+            const lastPlay = localStorage.getItem('lastPlay');
+            const lastAttempts = localStorage.getItem('attemptsLeft');
+            
+            if (lastPlay && lastAttempts) {
+                const timeElapsed = Date.now() - parseInt(lastPlay);
+                const waitTime = 24 * 60 * 60 * 1000; // 24 heures
+                
+                if (timeElapsed < waitTime) {
+                    attemptsLeft = parseInt(lastAttempts);
+                    if (attemptsLeft <= 0) {
+                        const timeLeft = waitTime - timeElapsed;
+                        leverButton.disabled = true;
+                        timer.textContent = `Revenez demain pour de nouveaux essais !`;
+                        attemptsDisplay.textContent = `Plus d'essais disponibles`;
+                        return false;
+                    }
+                } else {
+                    // Réinitialiser après 24h
+                    attemptsLeft = 3;
+                    localStorage.removeItem('lastPlay');
+                    localStorage.removeItem('attemptsLeft');
+                }
+            } else {
+                attemptsLeft = 3;
+            }
+            
+            attemptsDisplay.textContent = `Essais restants : ${attemptsLeft}`;
+            timer.textContent = '';
+            return true;
+        }
+
+        checkPlayEligibility();
+
+        leverButton.addEventListener('click', () => {
+            if (!checkPlayEligibility() || attemptsLeft <= 0) return;
+
+            leverButton.disabled = true;
+            result.textContent = '';
+            
+            let rolls = 0;
+            const maxRolls = 20;
+            
+            const rollInterval = setInterval(() => {
+                slot1.textContent = getRandomSymbol();
+                slot2.textContent = getRandomSymbol();
+                slot3.textContent = getRandomSymbol();
+                
+                rolls++;
+                
+                if (rolls >= maxRolls) {
+                    clearInterval(rollInterval);
+                    
+                    const finalSymbol1 = getRandomSymbol();
+                    const finalSymbol2 = getRandomSymbol();
+                    const finalSymbol3 = getRandomSymbol();
+                    
+                    slot1.textContent = finalSymbol1;
+                    slot2.textContent = finalSymbol2;
+                    slot3.textContent = finalSymbol3;
+                    
+                    const prize = checkWin(finalSymbol1, finalSymbol2, finalSymbol3);
+                    
+                    attemptsLeft--;
+                    localStorage.setItem('attemptsLeft', attemptsLeft.toString());
+                    attemptsDisplay.textContent = `Essais restants : ${attemptsLeft}`;
+                    
+                    if (prize) {
+                        result.innerHTML = `<div class="win">${prize}</div>`;
+                    } else {
+                        result.innerHTML = `<div class="lose">Pas de chance ! ${attemptsLeft > 0 ? 'Réessayez !' : 'Revenez demain !'}</div>`;
+                    }
+                    
+                    if (attemptsLeft <= 0) {
+                        localStorage.setItem('lastPlay', Date.now().toString());
+                        checkPlayEligibility();
+                    } else {
+                        leverButton.disabled = false;
+                    }
+                }
+            }, 100);
+        });
+
+        setInterval(checkPlayEligibility, 60000);
+    </script>
+</body>
+</html>
